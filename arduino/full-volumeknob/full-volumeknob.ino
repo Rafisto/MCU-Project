@@ -9,6 +9,7 @@ int crCLK = 0;
 bool muted = false;
 
 unsigned long lastButtonPress = 0;
+unsigned long lastBlink = 0;
 unsigned long lastMuteBlink = 0;
 bool diode = false;
 
@@ -38,6 +39,7 @@ void setup() {
 
 int _step = 4;
 void loop() {
+  crCLK = (PINE >> 6) & 1;
   if (muted) {
     if (millis() - lastMuteBlink > 1000) {
       lastMuteBlink = millis();
@@ -45,7 +47,11 @@ void loop() {
       digitalWrite(A1, diode);
     }
   }
-
+  if (millis()-lastBlink > 1000){
+    digitalWrite(A0,0);
+    digitalWrite(A2,0);
+    lastBlink=millis();
+  }
   if (((PINB >> 6) & 1) == 0) {
     if (millis() - lastButtonPress > 50) {
       if (muted) {
@@ -64,17 +70,16 @@ void loop() {
     }
     lastButtonPress = millis();
   }
-
-  crCLK = (PINE >> 6) & 1;
   if (crCLK != lsCLK  && crCLK == 1) {
     if (muted) {
       muted = false;
       unmute();
       updateLED();
-      return;
+      delay(100);
     }
-    if (((PINB >> 4) & 1) != crCLK) {
+    else if (((PINB >> 4) & 1) != crCLK) {
       vol += _step;
+      lastBlink=millis();
       digitalWrite(A0, HIGH);
       digitalWrite(A2, LOW);
       Consumer.write(MEDIA_VOLUME_UP);
@@ -83,6 +88,7 @@ void loop() {
     }
     else {
       vol -= _step;
+      lastBlink=millis();
       digitalWrite(A0, LOW);
       digitalWrite(A2, HIGH);
       Consumer.write(MEDIA_VOLUME_DOWN);
